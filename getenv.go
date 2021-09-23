@@ -10,35 +10,39 @@ import (
 
 var env *GetEnv
 
+func GetVal(key string) *ValHandel {
+	return env.GetVal(key)
+}
+
 type GetEnv struct {
 	filePath string
 	valMap   map[string]string
 }
 
-func (t *GetEnv) Init() {
-	if !t.checkFileExist() {
+func (ge *GetEnv) Init() {
+	if !ge.checkFileExist() {
 		fmt.Println("env file no exist")
 		os.Exit(0)
 	}
-	err := t.readFile()
+	err := ge.readFile()
 	if err != nil {
 		fmt.Println("init env file fail: ", err.Error())
 		os.Exit(0)
 	}
-	env = t
+	env = ge
 }
 
-func (t *GetEnv) SetFilePath(filePath string) *GetEnv {
-	t.filePath = filePath
-	return t
+func (ge *GetEnv) SetFilePath(filePath string) *GetEnv {
+	ge.filePath = filePath
+	return ge
 }
 
-func (t *GetEnv) getFilePath() string {
-	return t.filePath
+func (ge *GetEnv) getFilePath() string {
+	return ge.filePath
 }
 
-func (t *GetEnv) readFile() error {
-	file, err := os.Open(t.getFilePath())
+func (ge *GetEnv) readFile() error {
+	file, err := os.Open(ge.getFilePath())
 	if err != nil {
 		return err
 	}
@@ -49,13 +53,13 @@ func (t *GetEnv) readFile() error {
 		}
 	}(file)
 	scanner := bufio.NewScanner(file)
-	t.valMap = make(map[string]string, 0)
+	ge.valMap = make(map[string]string, 0)
 	for scanner.Scan() {
 		line := scanner.Text()
-		line, _ = t.filterLineNotes(line, "#")
+		line, _ = ge.filterLineNotes(line, "#")
 		lineList := strings.Split(line, "=")
 		if len(lineList) == 2 {
-			t.valMap[strings.TrimSpace(lineList[0])] = strings.TrimSpace(lineList[1])
+			ge.valMap[strings.TrimSpace(lineList[0])] = strings.TrimSpace(lineList[1])
 		}
 	}
 	if err := scanner.Err(); err != nil {
@@ -64,7 +68,7 @@ func (t *GetEnv) readFile() error {
 	return nil
 }
 
-func (t *GetEnv) filterLineNotes(content string, filter string) (str string, err error) {
+func (ge *GetEnv) filterLineNotes(content string, filter string) (str string, err error) {
 	lineIndex := strings.Index(content, filter)
 	if lineIndex < 0 {
 		return content, nil
@@ -79,17 +83,17 @@ func (t *GetEnv) filterLineNotes(content string, filter string) (str string, err
 	return str, nil
 }
 
-func (t *GetEnv) GetVal(key string) *ValHandel {
+func (ge *GetEnv) GetVal(key string) *ValHandel {
 	key = strings.TrimSpace(key)
 	getVal := &ValHandel{}
-	if val, isOk := t.valMap[key]; isOk {
+	if val, isOk := ge.valMap[key]; isOk {
 		return getVal.setVal(val)
 	}
 	return getVal.setVal("")
 }
 
-func (t *GetEnv) checkFileExist() bool {
-	_, err := os.Stat(t.getFilePath())
+func (ge *GetEnv) checkFileExist() bool {
+	_, err := os.Stat(ge.getFilePath())
 	if os.IsNotExist(err) {
 		return false
 	}
@@ -100,27 +104,33 @@ type ValHandel struct {
 	val string
 }
 
-func (t *ValHandel) setVal(val string) *ValHandel {
-	t.val = strings.TrimSpace(val)
-	return t
+func (ge *ValHandel) setVal(val string) *ValHandel {
+	ge.val = strings.TrimSpace(val)
+	return ge
 }
 
-func (t *ValHandel) String() string {
-	return t.val
+func (ge *ValHandel) String() string {
+	return ge.val
 }
 
-func (t *ValHandel) StrSlice() []string {
-	valList := strings.Split(t.val, ",")
+func (ge *ValHandel) StrSlice() []string {
+	valList := strings.Split(ge.val, ",")
 	return valList
 }
 
-func (t *ValHandel) Int() int {
-	valInt, _ := strconv.Atoi(t.val)
+func (ge *ValHandel) Int() int {
+	if ge.val == "" {
+		return 0
+	}
+	valInt, _ := strconv.Atoi(ge.val)
 	return valInt
 }
 
-func (t *ValHandel) IntSlice() []int {
-	valList := strings.Split(t.val, ",")
+func (ge *ValHandel) IntSlice() []int {
+	if ge.val == "" {
+		return nil
+	}
+	valList := strings.Split(ge.val, ",")
 	valIntList := make([]int, 0)
 	for _, s := range valList {
 		valInt, _ := strconv.Atoi(s)
@@ -129,21 +139,23 @@ func (t *ValHandel) IntSlice() []int {
 	return valIntList
 }
 
-func (t *ValHandel) Int64() int64 {
-	valInt64, _ := strconv.ParseInt(t.val, 10, 64)
+func (ge *ValHandel) Int64() int64 {
+	if ge.val == "" {
+		return 0
+	}
+	valInt64, _ := strconv.ParseInt(ge.val, 10, 64)
 	return valInt64
 }
 
-func (t *ValHandel) Int64Slice() []int64 {
-	valList := strings.Split(t.val, ",")
+func (ge *ValHandel) Int64Slice() []int64 {
+	if ge.val == "" {
+		return nil
+	}
+	valList := strings.Split(ge.val, ",")
 	valIntList := make([]int64, 0)
 	for _, s := range valList {
 		valInt64, _ := strconv.ParseInt(s, 10, 64)
 		valIntList = append(valIntList, valInt64)
 	}
 	return valIntList
-}
-
-func GetVal(key string) *ValHandel {
-	return env.GetVal(key)
 }
